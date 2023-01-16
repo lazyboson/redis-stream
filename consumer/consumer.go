@@ -1,6 +1,8 @@
 package consumer
 
 import (
+	"RedisStream/models"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/garyburd/redigo/redis"
@@ -20,7 +22,7 @@ func NewConsumer(stream string, groups []string) *Consumer {
 
 type Entry struct {
 	ID     string
-	Fields map[string]string
+	Fields map[string][]byte
 }
 
 // Entries is a helper that converts an array of stream entries into Entry values.
@@ -41,7 +43,7 @@ func entries(reply interface{}, err error) ([]Entry, error) {
 		if err != nil {
 			return nil, err
 		}
-		sm, err := redis.StringMap(evs[1], nil)
+		sm, err := StringBytes(evs[1], nil)
 		if err != nil {
 			return nil, err
 		}
@@ -87,7 +89,11 @@ func (c *Consumer) ReadEventsCons1() {
 			fmt.Errorf("error parsing entries: %w", err)
 		}
 		for _, val := range res {
-			fmt.Printf("From Consumer Ashu:  Key: %s and val: %+v \n", val.ID, val.Fields)
+			for k, v := range val.Fields {
+				empl := &models.Employee{}
+				_ = json.Unmarshal(v, empl)
+				fmt.Printf("From Consumer Ashu:  Key: %s and val: %+v \n", k, empl)
+			}
 			reply, err := redis.Int(conn.Do("XACK", c.streamName, c.groupName[0], val.ID))
 			if reply != 1 {
 				fmt.Printf("failed to ack: err: %+v", err)
@@ -126,7 +132,11 @@ func (c *Consumer) ReadEventsCons2(conn redis.Conn) {
 		}
 
 		for _, val := range res {
-			fmt.Printf("From Consumer Pandey: Key: %s val: %+v \n", val.ID, val.Fields)
+			for k, v := range val.Fields {
+				empl := &models.Employee{}
+				_ = json.Unmarshal(v, empl)
+				fmt.Printf("From Consumer Pandey:  Key: %s and val: %+v \n", k, empl)
+			}
 			reply, err := redis.Int(conn.Do("XACK", c.streamName, c.groupName[0], val.ID))
 			if reply != 1 {
 				fmt.Printf("failed to ack: err: %+v", err)
@@ -148,4 +158,27 @@ func (c *Consumer) CreateConsumerGroup(conn redis.Conn) {
 			fmt.Println("consumer group created successfully")
 		}
 	}
+}
+
+// StringBytes is a helper that converts an array of strings (alternating key, value)
+// into a map[string]string. The HGETALL and CONFIG GET commands return replies in this format.
+// Requires an even number of values in result.
+func StringBytes(result interface{}, err error) (map[string][]byte, error) {
+	values, err := redis.Values(result, err)
+	if err != nil {
+		return nil, err
+	}
+	if len(values)%2 != 0 {
+		return nil, errors.New("redigo: StringMap expects even number of values result")
+	}
+	m := make(map[string][]byte, len(values)/2)
+	for i := 0; i < len(values); i += 2 {
+		key, okKey := values[i].([]byte)
+		value, okValue := values[i+1].([]byte)
+		if !okKey || !okValue {
+			return nil, errors.New("redigo: StringMap key not a bulk string value")
+		}
+		m[string(key)] = value
+	}
+	return m, nil
 }

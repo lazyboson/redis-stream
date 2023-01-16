@@ -22,10 +22,10 @@ func (p *Producer) WriteEvents(conn redis.Conn, key string) {
 		Employer: "self-employee",
 	}
 	// Convert struct to JSON
-	_, _ = json.Marshal(employee)
+	e, _ := json.Marshal(employee)
 
 	// Send key and value to Redis stream
-	_, err := conn.Do("XADD", p.streamName, "*", key, "india")
+	_, err := conn.Do("XADD", p.streamName, "*", key, e)
 	if err != nil {
 		fmt.Println(err)
 	}
