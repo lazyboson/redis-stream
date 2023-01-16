@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/garyburd/redigo/redis"
 	"github.com/google/uuid"
+	"time"
 )
 
 func main() {
@@ -25,5 +26,8 @@ func main() {
 		p.WriteEvents(conn, id.String())
 	}
 	c.CreateConsumerGroup(conn)
-	c.ReadEventsCons1(conn)
+	go c.ReadEventsCons1()
+	go c.ReadEventsCons2(conn)
+
+	time.Sleep(10 * time.Second)
 }

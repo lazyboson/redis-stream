@@ -53,8 +53,14 @@ func entries(reply interface{}, err error) ([]Entry, error) {
 	return entries, nil
 }
 
-func (c *Consumer) ReadEventsCons1(conn redis.Conn) {
+func (c *Consumer) ReadEventsCons1() {
 	// Connect to Redis
+	conn, err := redis.Dial("tcp", ":6379")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer conn.Close()
 	for {
 		// Read key and value from Redis stream
 		reply, err := conn.Do("XREADGROUP", "GROUP", c.groupName[0], "ashu", "COUNT", "1", "STREAMS", c.streamName, ">")
@@ -91,12 +97,11 @@ func (c *Consumer) ReadEventsCons1(conn redis.Conn) {
 	}
 }
 
-func (c *Consumer) readEventsCons2(conn redis.Conn) {
+func (c *Consumer) ReadEventsCons2(conn redis.Conn) {
 	// Connect to Redis
 	for {
 		// Read key and value from Redis stream
-		reply, err := entries(conn.Do("XREADGROUP", "GROUP", c.groupName[1], "pandey", "COUNT", "1", "STREAMS", c.streamName, "0"))
-
+		reply, err := conn.Do("XREADGROUP", "GROUP", c.groupName[1], "pandey", "COUNT", "1", "STREAMS", c.streamName, ">")
 		vs, err := redis.Values(reply, err)
 		if err != nil {
 			if errors.Is(err, redis.ErrNil) {
@@ -122,6 +127,10 @@ func (c *Consumer) readEventsCons2(conn redis.Conn) {
 
 		for _, val := range res {
 			fmt.Printf("From Consumer Pandey: Key: %s val: %+v \n", val.ID, val.Fields)
+			reply, err := redis.Int(conn.Do("XACK", c.streamName, c.groupName[1], val.ID))
+			if reply != 1 {
+				fmt.Printf("failed to ack: err: %+v", err)
+			}
 		}
 	}
 }
