@@ -18,7 +18,7 @@ func main() {
 	}
 	defer conn.Close()
 	stream := "newstream"
-	groups := []string{"firstgroup", "secondgroup"}
+	groups := []string{"firstgroup"}
 	p := producer.NewProducer(stream)
 	c := consumer.NewConsumer(stream, groups)
 	for i := 0; i < 10; i++ {
