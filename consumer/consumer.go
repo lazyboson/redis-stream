@@ -94,9 +94,8 @@ func (c *Consumer) ReadEventsCons1() {
 				_ = json.Unmarshal(v, empl)
 				fmt.Printf("From Consumer Ashu:  Key: %s and val: %+v \n", k, empl)
 			}
-			c.ackAndPop(val.ID)
+			ackAndPop(val.ID, c.streamName, c.groupName[0])
 		}
-
 	}
 }
 
@@ -140,12 +139,12 @@ func (c *Consumer) ReadEventsCons2() {
 				_ = json.Unmarshal(v, empl)
 				fmt.Printf("From Consumer Pandey:  Key: %s and val: %+v \n", k, empl)
 			}
-			c.ackAndPop(val.ID)
+			ackAndPop(val.ID, c.streamName, c.groupName[0])
 		}
 	}
 }
 
-func (c *Consumer) ackAndPop(id string) {
+func ackAndPop(id, streamName, groupName string) {
 	conn, err := redis.Dial("tcp", ":6379")
 	if err != nil {
 		fmt.Println(err)
@@ -159,7 +158,7 @@ func (c *Consumer) ackAndPop(id string) {
 					end
 					return r
 			`)
-	reply, err := redis.Int(zAckPopScript.Do(conn, c.streamName, c.groupName[0], id))
+	reply, err := redis.Int(zAckPopScript.Do(conn, streamName, groupName, id))
 	if reply != 1 {
 		fmt.Printf("failed to ack: err: %+v", err)
 	}
@@ -173,15 +172,17 @@ func (c *Consumer) CreateConsumerGroup() {
 	}
 	defer conn.Close()
 	for _, val := range c.groupName {
-		_, err := redis.Values(conn.Do("XGROUP", "CREATE", c.streamName, val, "$"))
+		reply, err := redis.String(conn.Do("XGROUP", "CREATE", c.streamName, val, "$"))
 		if err != nil {
 			if err.Error() == "BUSYGROUP Consumer Group name already exists" {
 				fmt.Printf("Consumer Group already exist: skipping creation\n")
 			} else {
 				fmt.Printf("failed to create consumer group: %+v \n", err)
 			}
-		} else {
+		} else if reply == "OK" {
 			fmt.Println("consumer group created successfully")
+		} else {
+			fmt.Println("failed in creating consumer group")
 		}
 	}
 }

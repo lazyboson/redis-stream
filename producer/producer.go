@@ -4,7 +4,7 @@ import (
 	"RedisStream/models"
 	"encoding/json"
 	"fmt"
-	"github.com/garyburd/redigo/redis"
+	"github.com/gomodule/redigo/redis"
 )
 
 type Producer struct {
@@ -15,8 +15,14 @@ func NewProducer(streamName string) *Producer {
 	return &Producer{streamName: streamName}
 }
 
-func (p *Producer) WriteEvents(conn redis.Conn, key string) {
+func (p *Producer) WriteEvents(key string) {
 	// Create a new struct
+	conn, err := redis.Dial("tcp", ":6379")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer conn.Close()
 	employee := models.Employee{
 		Name:     "ashutosh",
 		Employer: "self-employee",
@@ -25,7 +31,7 @@ func (p *Producer) WriteEvents(conn redis.Conn, key string) {
 	e, _ := json.Marshal(employee)
 
 	// Send key and value to Redis stream
-	_, err := conn.Do("XADD", p.streamName, "*", key, e)
+	_, err = conn.Do("XADD", p.streamName, "*", key, e)
 	if err != nil {
 		fmt.Println(err)
 	}
