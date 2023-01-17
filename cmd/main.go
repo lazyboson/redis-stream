@@ -4,7 +4,7 @@ import (
 	"RedisStream/consumer"
 	"RedisStream/producer"
 	"fmt"
-	"github.com/garyburd/redigo/redis"
+	"github.com/gomodule/redigo/redis"
 	"github.com/google/uuid"
 	"time"
 )
@@ -17,7 +17,7 @@ func main() {
 		return
 	}
 	defer conn.Close()
-	stream := "newstream"
+	stream := "secondstream"
 	groups := []string{"firstgroup"}
 	p := producer.NewProducer(stream)
 	c := consumer.NewConsumer(stream, groups)
@@ -25,9 +25,9 @@ func main() {
 		id, _ := uuid.NewUUID()
 		p.WriteEvents(conn, id.String())
 	}
-	c.CreateConsumerGroup(conn)
+	c.CreateConsumerGroup()
 	go c.ReadEventsCons1()
-	go c.ReadEventsCons2(conn)
+	go c.ReadEventsCons2()
 
 	time.Sleep(10 * time.Second)
 }

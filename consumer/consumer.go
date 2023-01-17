@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/garyburd/redigo/redis"
+	"github.com/gomodule/redigo/redis"
 )
 
 type Consumer struct {
@@ -94,18 +94,21 @@ func (c *Consumer) ReadEventsCons1() {
 				_ = json.Unmarshal(v, empl)
 				fmt.Printf("From Consumer Ashu:  Key: %s and val: %+v \n", k, empl)
 			}
-			reply, err := redis.Int(conn.Do("XACK", c.streamName, c.groupName[0], val.ID))
-			if reply != 1 {
-				fmt.Printf("failed to ack: err: %+v", err)
-			}
+			c.ackAndPop(val.ID)
 		}
 
 	}
 }
 
-func (c *Consumer) ReadEventsCons2(conn redis.Conn) {
+func (c *Consumer) ReadEventsCons2() {
 	// Connect to Redis
 	for {
+		conn, err := redis.Dial("tcp", ":6379")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer conn.Close()
 		// Read key and value from Redis stream
 		reply, err := conn.Do("XREADGROUP", "GROUP", c.groupName[0], "pandey", "COUNT", "1", "STREAMS", c.streamName, ">")
 		vs, err := redis.Values(reply, err)
@@ -137,15 +140,38 @@ func (c *Consumer) ReadEventsCons2(conn redis.Conn) {
 				_ = json.Unmarshal(v, empl)
 				fmt.Printf("From Consumer Pandey:  Key: %s and val: %+v \n", k, empl)
 			}
-			reply, err := redis.Int(conn.Do("XACK", c.streamName, c.groupName[0], val.ID))
-			if reply != 1 {
-				fmt.Printf("failed to ack: err: %+v", err)
-			}
+			c.ackAndPop(val.ID)
 		}
 	}
 }
 
-func (c *Consumer) CreateConsumerGroup(conn redis.Conn) {
+func (c *Consumer) ackAndPop(id string) {
+	conn, err := redis.Dial("tcp", ":6379")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer conn.Close()
+	var zAckPopScript = redis.NewScript(3, `
+					local r = redis.call('XACK', KEYS[1], KEYS[2], KEYS[3])
+					if r ~= nil then
+						redis.call('XDEL', KEYS[1], KEYS[3])
+					end
+					return r
+			`)
+	reply, err := redis.Int(zAckPopScript.Do(conn, c.streamName, c.groupName[0], id))
+	if reply != 1 {
+		fmt.Printf("failed to ack: err: %+v", err)
+	}
+}
+
+func (c *Consumer) CreateConsumerGroup() {
+	conn, err := redis.Dial("tcp", ":6379")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer conn.Close()
 	for _, val := range c.groupName {
 		_, err := redis.Values(conn.Do("XGROUP", "CREATE", c.streamName, val, "$"))
 		if err != nil {
