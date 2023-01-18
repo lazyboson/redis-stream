@@ -94,7 +94,10 @@ func (c *Consumer) ReadEventsCons1() {
 				_ = json.Unmarshal(v, empl)
 				fmt.Printf("From Consumer Ashu:  Key: %s and val: %+v \n", k, empl)
 			}
-			ackAndPop(val.ID, c.streamName, c.groupName[0])
+			//ackAndPop(val.ID, c.streamName, c.groupName[0])
+			if reply, err = redis.Int(conn.Do("XACK", c.streamName, c.groupName[0], val.ID)); err != nil {
+				fmt.Println(err)
+			}
 		}
 	}
 }
@@ -139,7 +142,10 @@ func (c *Consumer) ReadEventsCons2() {
 				_ = json.Unmarshal(v, empl)
 				fmt.Printf("From Consumer Pandey:  Key: %s and val: %+v \n", k, empl)
 			}
-			ackAndPop(val.ID, c.streamName, c.groupName[0])
+			//ackAndPop(val.ID, c.streamName, c.groupName[0])
+			if reply, err = redis.Int(conn.Do("XACK", c.streamName, c.groupName[0], val.ID)); err != nil {
+				fmt.Println(err)
+			}
 		}
 	}
 }
