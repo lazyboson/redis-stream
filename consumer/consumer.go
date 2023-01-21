@@ -106,13 +106,13 @@ func (c *Consumer) ReadEventsCons1() {
 
 func (c *Consumer) ReadEventsCons2() {
 	// Connect to Redis
+	conn, err := redis.Dial("tcp", ":6379")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer conn.Close()
 	for {
-		conn, err := redis.Dial("tcp", ":6379")
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		defer conn.Close()
 		// Read key and value from Redis stream
 		reply, err := conn.Do("XREADGROUP", "GROUP", c.groupName[0], "pandey", "COUNT", "1", "STREAMS", c.streamName, ">")
 		vs, err := redis.Values(reply, err)
