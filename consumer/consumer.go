@@ -189,12 +189,13 @@ func (c *Consumer) CreateConsumerGroup() {
 				fmt.Printf("Consumer Group already exist: skipping creation\n")
 				return
 			}
-			fmt.Printf("failed to create consumer group \n")
 		}
 		if reply == "OK" {
 			fmt.Println("consumer group created successfully")
 			return
 		}
+
+		fmt.Printf("failed to create consumer group \n")
 	}
 }
 
