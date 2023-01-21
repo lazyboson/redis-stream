@@ -2,10 +2,12 @@ package consumer
 
 import (
 	"RedisStream/models"
+	"RedisStream/pb/apipb/pb"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/gomodule/redigo/redis"
+	"google.golang.org/protobuf/proto"
 )
 
 type Consumer struct {
@@ -138,8 +140,11 @@ func (c *Consumer) ReadEventsCons2() {
 
 		for _, val := range res {
 			for k, v := range val.Fields {
-				empl := &models.Employee{}
-				_ = json.Unmarshal(v, empl)
+				empl := &pb.Employee{}
+				err = proto.Unmarshal(v, empl)
+				if err != nil {
+					fmt.Printf("failed to unmarshall: %+v", err)
+				}
 				fmt.Printf("From Consumer Pandey:  Key: %s and val: %+v \n", k, empl)
 			}
 			//ackAndPop(val.ID, c.streamName, c.groupName[0])

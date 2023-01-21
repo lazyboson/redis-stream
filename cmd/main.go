@@ -2,23 +2,28 @@ package main
 
 import (
 	"RedisStream/consumer"
+	"RedisStream/pb/apipb/pb"
 	"RedisStream/producer"
 	"github.com/google/uuid"
 	"time"
 )
 
 func main() {
-	// Connect to Redis
-	stream := "kafkareplacementstream"
-	groups := []string{"firstgroup"}
+	stream := "kafka-replacement-stream"
+	groups := []string{"first-member"}
 	p := producer.NewProducer(stream)
 	c := consumer.NewConsumer(stream, groups)
 	for i := 0; i < 10; i++ {
 		id, _ := uuid.NewUUID()
-		p.WriteEvents(id.String())
+		data := &pb.Employee{
+			Id:          id.String(),
+			Name:        "ashutosh",
+			Designation: "self-employed",
+		}
+		p.WriteEvents(id.String(), data)
 	}
 	c.CreateConsumerGroup()
-	go c.ReadEventsCons1()
+	//go c.ReadEventsCons1()
 	go c.ReadEventsCons2()
 
 	time.Sleep(10 * time.Second)

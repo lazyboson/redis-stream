@@ -1,10 +1,10 @@
 package producer
 
 import (
-	"RedisStream/models"
-	"encoding/json"
+	"RedisStream/pb/apipb/pb"
 	"fmt"
 	"github.com/gomodule/redigo/redis"
+	"google.golang.org/protobuf/proto"
 )
 
 type Producer struct {
@@ -15,7 +15,7 @@ func NewProducer(streamName string) *Producer {
 	return &Producer{streamName: streamName}
 }
 
-func (p *Producer) WriteEvents(key string) {
+func (p *Producer) WriteEvents(key string, data *pb.Employee) {
 	// Create a new struct
 	conn, err := redis.Dial("tcp", ":6379")
 	if err != nil {
@@ -23,15 +23,12 @@ func (p *Producer) WriteEvents(key string) {
 		return
 	}
 	defer conn.Close()
-	employee := models.Employee{
-		Name:     "ashutosh",
-		Employer: "self-employee",
+	e, err := proto.Marshal(data)
+	if err != nil {
+		fmt.Println(err)
 	}
-	// Convert struct to JSON
-	e, _ := json.Marshal(employee)
-
 	// Send key and value to Redis stream
-	_, err = conn.Do("XADD", p.streamName, "*", key, e)
+	_, err = conn.Do("XADD", p.streamName, "*", []byte(key), e)
 	if err != nil {
 		fmt.Println(err)
 	}
