@@ -1,9 +1,7 @@
 package consumer
 
 import (
-	"RedisStream/models"
 	"RedisStream/pb/apipb/pb"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/gomodule/redigo/redis"
@@ -92,8 +90,11 @@ func (c *Consumer) ReadEventsCons1() {
 		}
 		for _, val := range res {
 			for k, v := range val.Fields {
-				empl := &models.Employee{}
-				_ = json.Unmarshal(v, empl)
+				empl := &pb.Employee{}
+				err = proto.Unmarshal(v, empl)
+				if err != nil {
+					fmt.Printf("failed to unmarshall: %+v", err)
+				}
 				fmt.Printf("From Consumer Ashu:  Key: %s and val: %+v \n", k, empl)
 			}
 			//ackAndPop(val.ID, c.streamName, c.groupName[0])

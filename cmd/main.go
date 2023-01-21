@@ -9,10 +9,11 @@ import (
 )
 
 func main() {
-	stream := "kafka-replacement-stream"
+	stream := "k-replacement-stream"
 	groups := []string{"first-member"}
 	p := producer.NewProducer(stream)
 	c := consumer.NewConsumer(stream, groups)
+	c.CreateConsumerGroup()
 	for i := 0; i < 10; i++ {
 		id, _ := uuid.NewUUID()
 		data := &pb.Employee{
@@ -22,8 +23,7 @@ func main() {
 		}
 		p.WriteEvents(id.String(), data)
 	}
-	c.CreateConsumerGroup()
-	//go c.ReadEventsCons1()
+	go c.ReadEventsCons1()
 	go c.ReadEventsCons2()
 
 	time.Sleep(10 * time.Second)
