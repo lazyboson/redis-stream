@@ -187,19 +187,19 @@ func (c *Consumer) CreateConsumerGroup() {
 		if err != nil {
 			if err.Error() == "BUSYGROUP Consumer Group name already exists" {
 				fmt.Printf("Consumer Group already exist: skipping creation\n")
-			} else {
-				fmt.Printf("failed to create consumer group: %+v \n", err)
+				return
 			}
-		} else if reply == "OK" {
+			fmt.Printf("failed to create consumer group \n")
+		}
+		if reply == "OK" {
 			fmt.Println("consumer group created successfully")
-		} else {
-			fmt.Println("failed in creating consumer group")
+			return
 		}
 	}
 }
 
 // StringBytes is a helper that converts an array of strings (alternating key, value)
-// into a map[string]string. The HGETALL and CONFIG GET commands return replies in this format.
+// into a map[string][]byte. The HGETALL and CONFIG GET commands return replies in this format.
 // Requires an even number of values in result.
 func StringBytes(result interface{}, err error) (map[string][]byte, error) {
 	values, err := redis.Values(result, err)
@@ -214,7 +214,7 @@ func StringBytes(result interface{}, err error) (map[string][]byte, error) {
 		key, okKey := values[i].([]byte)
 		value, okValue := values[i+1].([]byte)
 		if !okKey || !okValue {
-			return nil, errors.New("redigo: StringMap key not a bulk string value")
+			return nil, errors.New("redigo: StringMap key not a bulk bytes value")
 		}
 		m[string(key)] = value
 	}
