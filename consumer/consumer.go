@@ -184,7 +184,7 @@ func (c *Consumer) CreateConsumerGroup() {
 	}
 	defer conn.Close()
 	for _, val := range c.groupName {
-		reply, err := redis.String(conn.Do("XGROUP", "CREATE", c.streamName, val, "$"))
+		reply, err := redis.String(conn.Do("XGROUP", "CREATE", c.streamName, val, "$", "MKSTREAM"))
 		if err != nil {
 			if err.Error() == "BUSYGROUP Consumer Group name already exists" {
 				fmt.Printf("Consumer Group already exist: skipping creation\n")

@@ -28,7 +28,7 @@ func (p *Producer) WriteEvents(key string, data *pb.Employee) {
 		fmt.Println(err)
 	}
 	// Send key and value to Redis stream
-	_, err = conn.Do("XADD", p.streamName, "MAXLEN", "~", "10", "*", []byte(key), e)
+	_, err = conn.Do("XADD", p.streamName, "MAXLEN", "~", "100000", "*", []byte(key), e)
 	if err != nil {
 		fmt.Println(err)
 	}
